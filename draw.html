@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset = "utf-8"/>
+	<title>canvas 画图实例</title>
+</head>
+<body>
+
+ <div class="container">
+ <h1>canvas 画图实例</h1>
+	<canvas id="canvas" width="800px" height="400px" class="canvas">
+	您的浏览器不支持canvas!</canvas>
+	<div id="colorpanel" ></div>
+<br/>
+<button type="button" id="colorbtn"  onclick="intocolor()" class="colorbtn">颜色值</button>
+<button type="button" id="clearbtn" class="clearbtn">橡皮擦</button>
+画笔/橡皮擦大小：1<input type=range  id="sizebtn" value="5" min="1" max="10" step="1">10
+<button type="button" id="savebtn" class="savebtn">保存</button>
+<br/>
+<div id="resimg" ></div>
+
+</div> 
+</body>
+<style type="text/css">
+.container{
+	width: 100%;
+}
+.image{
+	border: 2px solid #ccc;
+}
+.canvas{
+	border: 2px solid #ccc;
+	margin: 0 auto;
+}
+
+</style>
+<script type="text/javascript">
+
+var canvas = document.getElementById('canvas');
+var color = "#df4b26";
+var lineWidth = 5;
+var joinType = "round";
+var capType = "round";
+function getMousePos(canvas,evt){
+	var rect = canvas.getBoundingClientRect();
+	return {
+	  x:evt.clientX - rect.left,
+	  y:evt.clientY - rect.top
+	}    
+} 
+function draw_config(context){
+	//设置线条宽度
+	context.lineWidth = lineWidth;
+	//设置或返回两条线相交时，所创建的拐角类型
+	context.lineJoin = joinType;
+	context.strokeStyle = color;
+	//设置或返回线条的结束端点样式
+	context.lineCap = capType;
+}
+
+function Draw(arg) {
+	if (arg.nodeType) {
+		this.canvas = arg;
+	} else if (typeof arg == 'string') {
+		this.canvas = document.getElementById(arg);
+	} else {
+		return;
+	}
+	this.init();
+}
+Draw.prototype = {
+	init: function() {
+			var that = this;
+			if (!this.canvas.getContext) {
+				return;
+			}
+			this.context = this.canvas.getContext('2d');
+			this.canvas.onselectstart = function () {
+				return false; //修复chrome下光标样式的问题
+			};
+			this.canvas.onmousedown = function(event) {
+				that.drawBegin(event);
+			};
+	},
+	drawBegin: function(event) {
+		var that = this;
+		var mousePos = getMousePos(this.canvas,event);	
+		var x = mousePos.x;
+		var y = mousePos.y; 
+		this.context.beginPath();
+		draw_config(this.context);
+		this.context.moveTo(x,y);
+		document.onmousemove = function(event) {
+			that.drawing(event);
+		};
+		document.onmouseup = this.drawEnd;
+	},
+	//画图函数，鼠标左键松开前，会一直重复执行
+	drawing: function(event) {
+		var mousePos = getMousePos(this.canvas,event);	
+		var x = mousePos.x;
+		var y = mousePos.y; 
+		this.context.lineTo(x,y);
+		if(x>0 && y>0 && x<this.canvas.width && y<this.canvas.height){
+			this.context.stroke();
+		}
+	},
+	//鼠标松开时，停止画图
+	drawEnd: function() {
+		document.onmousemove = document.onmouseup = null;
+	}
+};
+var draw = new Draw(canvas);
+var savebtn = document.getElementById("savebtn");
+savebtn.onclick = function(){
+	//将canvas画布转化成base64编码的image。图片默认为png格式。
+	 var url = canvas.toDataURL();
+	 var resimg = document.getElementById("resimg");
+	 resimg.innerHTML = '<img id="image" class="image" src="'+url+'">'
+}
+
+
+var ColorHex=new Array('00','33','66','99','CC','FF')
+var SpColorHex=new Array('FF0000','00FF00','0000FF','FFFF00','00FFFF','FF00FF')
+var current=null
+function intocolor()
+{
+	var colorTable=''
+	for (i=0;i<2;i++)
+	{
+		for (j=0;j<6;j++)
+		{
+			colorTable=colorTable+'<tr height=12>';
+			if (i==0){
+				colorTable=colorTable+'<td width=12 style="background-color:#'+ColorHex[j]+ColorHex[j]+ColorHex[j]+'">'
+			}
+			else{
+				colorTable=colorTable+'<td width=12 style="background-color:#'+SpColorHex[j]+'">'
+			}
+			for (k=0;k<3;k++)
+			{
+				for (l=0;l<6;l++)
+				{
+					colorTable=colorTable+'<td width=12 style="background-color:#'+ColorHex[k+i*3]+ColorHex[l]+ColorHex[j]+'">';
+				}
+			}
+		}
+	}
+	colorTable='<table width=248 border="0" cellspacing="0" cellpadding="0" style="border:1px #000000 solid;border-bottom:none;border-collapse: collapse" bordercolor="000000">'
+	+'<tr height=30><td colspan=21 bgcolor=#cccccc>'
+	+'<table cellpadding="0" cellspacing="1" border="0" style="border-collapse: collapse">'
+	+'<tr><td width="3"><td><input type="text" id="DisColor" name="DisColor" size="6" disabled style="border:solid 1px #000000;background-color:'+color+'"></td>'
+	+'<td width="3"><td><input type="text" id="HexColor" name="HexColor" size="12" style="border:inset 1px;font-family:Arial;" value="'+color+'"></td></tr></table></td></table>'
+	+'<table border="1" cellspacing="0" cellpadding="0" style="border-collapse: collapse" bordercolor="000000" onclick="doclick()" style="cursor:hand;">'
+	+colorTable+'</table>';
+	colorpanel.innerHTML=colorTable;
+}
+function doclick() {
+	var srcele = event.srcElement;
+	if ((srcele.tagName=="TD") && (current!=srcele)) {
+		if (current!=null){
+			current.style.backgroundColor = current._background
+		}
+		srcele._background = srcele.style.backgroundColor;
+		document.getElementById('DisColor').style.backgroundColor = srcele.style.backgroundColor;
+		document.getElementById('HexColor').value = srcele.style.backgroundColor;
+		color = srcele.style.backgroundColor;
+		srcele.style.backgroundColor = "white";
+		current = srcele;
+	
+	}
+}
+function getcolor(){
+	color = document.getElementById('getcolorbtn').value;
+}
+function clear(){
+	color = "#000";
+}
+var clearbtn = document.getElementById("clearbtn");
+clearbtn.onclick = function(){
+	color = "#fff";
+}
+
+var sizebtn = document.getElementById("sizebtn");
+sizebtn.onclick = function(){
+	lineWidth = sizebtn.value;
+}
+</script>
+</html>
